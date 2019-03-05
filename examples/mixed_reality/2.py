@@ -38,7 +38,7 @@ class MixedRealityNetwork(Network):
         self.dt = dt
 
         self.add_layer(Input(n=self.n_input, traces=True, trace_tc=5e-2), name='X')
-        self.add_layer(AdaptiveLIFNodes(n=self.n_neurons, traces=True, rest=-65.0, reset=-65.0, thresh=-52.0, refrac=5,
+        self.add_layer(AdaptiveLIFNodes(n=self.n_neurons, traces=True, sum_input=True, rest=-65.0, reset=-65.0, thresh=-52.0, refrac=5,
                                 decay=1e-2, trace_tc=5e-2, theta_decay=1e-5, theta_plus=1e-2), name='Y')
 
         w = 0.3 * torch.rand(self.n_input, self.n_neurons)
@@ -54,30 +54,30 @@ images = torch.as_tensor([
      0, 0, 0, 0,
      0, 0, 0, 0],
   ],
-  # [
-  #   [1, 1, 1, 1,
-  #    0, 0, 0, 0,
-  #    0, 0, 0, 0,
-  #    0, 0, 0, 0],
-  # ],
-  # [
-  #   [1, 0, 0, 0,
-  #    1, 0, 0, 0,
-  #    1, 0, 0, 0,
-  #    1, 0, 0, 0],
-  # ],
-  # [
-  #   [0, 0, 0, 1,
-  #    0, 0, 0, 1,
-  #    0, 0, 0, 1,
-  #    0, 0, 0, 1],
-  # ],
+  [
+    [1, 1, 1, 1,
+     0, 0, 0, 0,
+     0, 0, 0, 0,
+     0, 0, 0, 0],
+  ],
+  [
+    [1, 0, 0, 0,
+     1, 0, 0, 0,
+     1, 0, 0, 0,
+     1, 0, 0, 0],
+  ],
+  [
+    [0, 0, 0, 1,
+     0, 0, 0, 1,
+     0, 0, 0, 1,
+     0, 0, 0, 1],
+  ],
 ]).float() * 0.5
 
-labels = torch.as_tensor([0])
+labels = torch.as_tensor([0, 1, 2, 3])
 dataset = ImageDataset(images, labels)
 input_size = 4
-layer1_size = 2
+layer1_size = 3
 network = MixedRealityNetwork(n_input=input_size*input_size, n_neurons=layer1_size*layer1_size, norm=1)
 
 environment = DatasetEnvironment(dataset=dataset, train=True, intensity=1)
@@ -88,14 +88,15 @@ pipeline = Pipeline(network=network, environment=environment, plot_type='line',
 
 # Train the network.
 # print("w", network.connection.w)
-for i in range(20):
+for i in range(50):
     print(f"step {i}")
     pipeline.step()
-    network.reset_()
 
     # print("w", network.connection.w)
-    plt.imshow(network.connection.w.view(input_size * input_size, layer1_size * layer1_size))
+    # plt.imshow(network.connection.w.view(input_size * input_size, layer1_size * layer1_size))
     # plt.imshow(network.layers['Y'].theta.view(layer1_size, layer1_size))
+    plt.imshow(network.layers['Y'].summed.view(layer1_size, layer1_size))
     # print("theta", network.layers['Y'].theta)
+    network.reset_()
 print("w", network.connection.w)
 input('Press ENTER to exit')
