@@ -432,18 +432,25 @@ class AdaptiveLIFNodes(Nodes):
 
         :param x: Inputs to the layer.
         """
+        #sdfasd()
+        # print("x", x)
         # Decay voltages and adaptive thresholds.
+        # print("self.v before", self.v)
         self.v -= self.dt * self.decay * (self.v - self.rest)
+        # print("self.v", self.v)
         self.theta -= self.dt * self.theta_decay * self.theta
+        # print("self.theta", self.theta)
 
         # Integrate inputs.
         self.v += (self.refrac_count == 0).float() * x
+        # print("self.v", self.v)
 
         # Decrement refractory counters.
         self.refrac_count = (self.refrac_count > 0).float() * (self.refrac_count - self.dt)
 
         # Check for spiking neurons.
-        self.s = (self.v >= self.thresh + self.theta)
+        self.s = (self.v >= self.thresh - self.theta)
+        # print("self.s", self.s)
 
         # Refractoriness, voltage reset, and adaptive thresholds.
         self.refrac_count.masked_fill_(self.s, self.refrac)
@@ -453,6 +460,7 @@ class AdaptiveLIFNodes(Nodes):
         # voltage clipping to lowerbound
         if self.lbound is not None:
             self.v.masked_fill_(self.v < self.lbound, self.lbound)
+        # print("self.theta", self.theta)
 
         super().forward(x)
 

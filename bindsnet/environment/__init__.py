@@ -5,7 +5,7 @@ import numpy as np
 from typing import Tuple, Dict, Any
 from abc import ABC, abstractmethod
 
-from ..datasets import Dataset, MNIST, CIFAR10, CIFAR100, SpokenMNIST
+from ..datasets import Dataset, MNIST, CIFAR10, CIFAR100, SpokenMNIST, ImageDataset
 from ..datasets.preprocess import subsample, gray_scale, binary_image, crop
 
 
@@ -171,6 +171,12 @@ class DatasetEnvironment(Environment):
         elif type(self.dataset) in [CIFAR10, CIFAR100]:
             temp = self.obs.view(32, 32, 3).cpu().numpy() / self.intensity
             return temp / temp.max()
+        elif type(self.dataset) == ImageDataset:
+            # assume square image
+            assert len(self.obs.shape) == 1
+            w = int(self.obs.shape[0] ** 0.5)
+            assert w * w == self.obs.shape[-1]
+            return self.obs.view(w, w)
         elif type(self.dataset) in SpokenMNIST:
             return self.obs.view(-1, 40)
 

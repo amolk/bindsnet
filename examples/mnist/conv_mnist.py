@@ -28,6 +28,7 @@ parser.add_argument('--time', type=int, default=50)
 parser.add_argument('--dt', type=int, default=1.0)
 parser.add_argument('--intensity', type=float, default=0.5)
 parser.add_argument('--progress_interval', type=int, default=10)
+parser.add_argument('--plot_interval', type=int, default=100)
 parser.add_argument('--update_interval', type=int, default=250)
 parser.add_argument('--train', dest='train', action='store_true')
 parser.add_argument('--test', dest='train', action='store_false')
@@ -48,6 +49,7 @@ time = args.time
 dt = args.dt
 intensity = args.intensity
 progress_interval = args.progress_interval
+plot_interval = args.plot_interval
 update_interval = args.update_interval
 train = args.train
 plot = args.plot
@@ -152,7 +154,7 @@ for i in range(n_train):
     network.run(inpts=inpts, time=time)  # , clamp=clamp)
 
     # Optionally plot various simulation information.
-    if plot:
+    if plot and i % plot_interval == 0:
         inpt = inpts['X'].view(time, 784).sum(0).view(28, 28)
         weights1 = conv_conn.w
         _spikes = {'X': spikes['X'].get('s').view(28 ** 2, time),

@@ -6,7 +6,7 @@ from bindsnet.environment import DatasetEnvironment
 
 # Build Diehl & Cook 2015 network.
 network = DiehlAndCook2015(n_inpt=784, n_neurons=400, exc=22.5,
-                           inh=17.5, dt=1.0, norm=78.4)
+                           inh=17.5, dt=10, norm=78.4)
 
 # Specify dataset wrapper environment.
 environment = DatasetEnvironment(dataset=MNIST(path='../../data/MNIST', download=True),
@@ -18,5 +18,6 @@ pipeline = Pipeline(network=network, environment=environment, plot_type='line',
 
 # Train the network.
 for i in range(60000):
+    print(f"step {i}")
     pipeline.step()
     network.reset_()

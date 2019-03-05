@@ -56,6 +56,24 @@ class Dataset(ABC):
         """
         pass
 
+class ImageDataset(Dataset):
+  def __init__(self, images: torch.Tensor, labels: torch.Tensor):
+    # language=rst
+    """
+    Handles given set of images and labels as a Dataset
+    """
+    assert len(images.shape) == 3, "Specify a list of images (n_images x height x width)"
+    assert len(labels.shape) == 1, "Specify a list of image labels (n_images)"
+    assert images.shape[0] == labels.shape[0]
+
+    self.images = images
+    self.labels = labels
+    super().__init__()
+
+  def get_train(self):
+    return (self.images, self.labels)
+
+  def get_test(self): pass
 
 class MNIST(Dataset):
     # language=rst
