@@ -5,7 +5,7 @@ from abc import ABC
 from typing import Union, Tuple, Optional, Sequence
 
 from ..utils import im2col_indices
-from ..network.topology import AbstractConnection, Connection, Conv2dConnection, LocallyConnectedConnection
+from ..network.topology import AbstractConnection, Connection, Conv2dConnection, LocallyConnectedConnection, RFConnection
 
 
 class LearningRule(ABC):
@@ -112,6 +112,8 @@ class PostPre(LearningRule):
 
         if isinstance(connection, (Connection, LocallyConnectedConnection)):
             self.update = self._connection_update
+        elif isinstance(connection, RFConnection):
+            self.update = self._rf_connection_update
         elif isinstance(connection, Conv2dConnection):
             self.update = self._conv2d_connection_update
         else:
@@ -138,6 +140,23 @@ class PostPre(LearningRule):
         # Post-synaptic update.
         if self.nu[1]:
             self.connection.w += self.nu[1] * torch.ger(source_x, target_s)
+
+    def _rf_connection_update(self, **kwargs) -> None:
+        # language=rst
+        """
+        Post-pre learning rule for ``RFConnection`` subclass of ``AbstractConnection`` class.
+        """
+        super().update()
+        conv_patches = self.connection.inner_convolve()
+        #source_s = self.source.s.view(self.connection.source_shape)
+        source_x = self.source.x.view(self.connection.source_shape)
+
+        for index, patch in enumerate(conv_patches):
+            if self.target.s[index] > 0:
+                # Post-synaptic update
+                if self.nu[1]:
+                    source_x_patch = source_x[patch[0]:patch[2], patch[1]:patch[3]].contiguous().view(-1)
+                    self.connection.w[index] += self.nu[1] * source_x_patch
 
     def _conv2d_connection_update(self, **kwargs) -> None:
         # language=rst

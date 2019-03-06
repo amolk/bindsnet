@@ -34,6 +34,8 @@ class MixedRealityNetwork(Network):
         super().__init__(dt=dt)
 
         self.n_input = n_input
+        self.input_size = int(n_input ** 0.5)
+        assert self.input_size * self.input_size == self.n_input, "Only square input is supported"
         self.n_neurons = n_neurons
         self.dt = dt
 
@@ -78,7 +80,7 @@ labels = torch.as_tensor([0, 1, 2, 3])
 dataset = ImageDataset(images, labels)
 input_size = 4
 layer1_size = 3
-network = MixedRealityNetwork(n_input=input_size*input_size, n_neurons=layer1_size*layer1_size, norm=1)
+network = MixedRealityNetwork(n_input=input_size*input_size, n_neurons=layer1_size*layer1_size, norm=1, nu=(1e-4, 1e-2))
 
 environment = DatasetEnvironment(dataset=dataset, train=True, intensity=1)
 

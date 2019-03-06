@@ -532,6 +532,132 @@ class LocallyConnectedConnection(AbstractConnection):
         """
         super().reset_()
 
+class RFConnection(AbstractConnection):
+    # language=rst
+    """
+    Specifies a receptive field (RF) connection between one or two populations of neurons.
+    """
+
+    def __init__(self, source: Nodes, source_shape: Union[int, Tuple[int, int]],
+                 target: Nodes, target_shape: Union[int, Tuple[int, int]],
+                 kernel_shape: Union[int, Tuple[int, int]],
+                 nu: Optional[Union[float, Sequence[float]]] = None, weight_decay: float = 0.0, **kwargs) -> None:
+        # language=rst
+        """
+        Instantiates a ``RFConnection`` object. Source and target populations should be two-dimensional.
+
+        :param source: A layer of nodes from which the connection originates.
+        :param source_shape: Shape of source population if it's not ``[sqrt, sqrt]``.
+        :param target: A layer of nodes to which the connection connects.
+        :param target_shape: Shape of target population if it's not ``[sqrt, sqrt]``.
+        :param kernel_shape: Horizontal and vertical size of convolutional kernels.
+        :param nu: Learning rate for both pre- and post-synaptic events.
+        :param weight_decay: Constant multiple to decay weights by on each iteration.
+
+        Keyword arguments:
+
+        :param function update_rule: Modifies connection parameters according to some rule.
+        :param torch.Tensor w: Strengths of synapses.
+        :param torch.Tensor b: Target population bias.
+        :param float norm: Total weight per target neuron normalization constant.
+        """
+        super().__init__(source, target, nu, weight_decay, **kwargs)
+
+        self.source_shape = _pair(source_shape)
+        self.target_shape = _pair(target_shape)
+        self.kernel_shape = _pair(kernel_shape)
+
+        self.source_size = int(np.prod(self.source_shape))
+        self.target_size = int(np.prod(self.target_shape))
+        self.kernel_size = int(np.prod(self.kernel_shape))
+
+        assert self.source_size == source.n, f"Source size {source.n} mismatch with source_shape {self.source_shape}"
+        assert self.target_size == target.n, f"Target size {target.n} mismatch with target_shape {self.target_shape}"
+
+        self.conv_patches = self.inner_convolve(self.source_shape, self.target_shape, self.kernel_shape)
+
+        self.w = kwargs.get('w', None)
+        w_shape = (self.target_size, self.kernel_size)
+        if self.w is None:
+            self.w = torch.rand(w_shape) * 0.3
+        else:
+            assert self.w.shape == w_shape, f"Expected shape for weights {w_shape}, got {self.w.shape}"
+
+        self.b = kwargs.get('b', torch.zeros(self.target_size))
+
+        if self.norm is not None:
+            self.norm *= self.target_size
+        else:
+            self.norm = self.target_size
+
+    def compute(self, s: torch.Tensor) -> torch.Tensor:
+        # language=rst
+        """
+        Compute pre-activations given spikes using layer weights.
+
+        :param s: Incoming spikes.
+        :return: Incoming spikes multiplied by synaptic weights (with or with decaying spike activation).
+        """
+        # Compute multiplication of pre-activations by connection weights.
+        pre_activations = []
+        s = s.view(self.source_shape).float()
+        for i, patch in enumerate(self.conv_patches):
+          source_patch = s[patch[0]:patch[2], patch[1]:patch[3]].contiguous().view(-1)
+          target_patch = self.w[i] @ source_patch
+          pre_activations.append(target_patch)
+
+        pre_activations = torch.stack(pre_activations) + self.b
+        return pre_activations
+
+    def update(self, **kwargs) -> None:
+        # language=rst
+        """
+        Compute connection's update rule.
+        """
+        # if kwargs['mask'] is None:
+        #     kwargs['mask'] = self.mask
+
+        super().update(**kwargs)
+
+    def normalize(self) -> None:
+        # language=rst
+        """
+        Normalize weights so each target neuron has sum of connection weights equal to ``self.norm``.
+        """
+        if self.norm is not None:
+            sums = self.w.sum(dim=0)
+            self.w /= sums
+
+    def reset_(self) -> None:
+        # language=rst
+        """
+        Contains resetting logic for the connection.
+        """
+        super().reset_()
+
+    def inner_convolve(self, source_shape = None, target_shape = None, kernel_shape = None):
+        if source_shape is None:
+            source_shape = self.source_shape
+
+        if target_shape is None:
+            target_shape = self.target_shape
+
+        if kernel_shape is None:
+            kernel_shape = self.kernel_shape
+
+        assert source_shape[0] >= kernel_shape[0], f"input {source_shape} cannot be smaller than kernel {kernel_shape}"
+        assert source_shape[1] >= kernel_shape[1], f"input {source_shape} cannot be smaller than kernel {kernel_shape}"
+
+        patches = []
+        for output_row in range(target_shape[0]):
+            for output_col in range(target_shape[1]):
+                patch_row = round(output_row * (source_shape[0] - kernel_shape[0]) / (target_shape[0] - 1))
+                patch_col = round(output_col * (source_shape[1] - kernel_shape[1]) / (target_shape[1] - 1))
+                patch = (patch_row, patch_col, patch_row + kernel_shape[0], patch_col + kernel_shape[1])
+                patches.append(patch)
+
+        return patches
+
 
 class MeanFieldConnection(AbstractConnection):
     # language=rst
