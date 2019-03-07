@@ -654,8 +654,16 @@ class RFConnection(AbstractConnection):
         patches = []
         for output_row in range(target_shape[0]):
             for output_col in range(target_shape[1]):
-                patch_row = round(output_row * (source_shape[0] - kernel_shape[0]) / (target_shape[0] - 1))
-                patch_col = round(output_col * (source_shape[1] - kernel_shape[1]) / (target_shape[1] - 1))
+                if target_shape[0] == 1:
+                    patch_row = 0
+                else:
+                    patch_row = round(output_row * (source_shape[0] - kernel_shape[0]) / (target_shape[0] - 1))
+
+                if target_shape[1] == 1:
+                    patch_col = 0
+                else:
+                    patch_col = round(output_col * (source_shape[1] - kernel_shape[1]) / (target_shape[1] - 1))
+
                 patch = (patch_row, patch_col, patch_row + kernel_shape[0], patch_col + kernel_shape[1])
                 patches.append(patch)
 
