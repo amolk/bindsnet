@@ -94,7 +94,7 @@ class MixedRealityNetwork(Network):
 
 dataset = get_dataset()
 source_shape = (4,4)
-target_shape = (6,6)
+target_shape = (2,2)
 kernel_shape = (3,3)
 network = MixedRealityNetwork(source_shape=source_shape, target_shape=target_shape, kernel_shape=kernel_shape, norm=1, nu=(1e-4, 1e-2))
 
@@ -106,15 +106,18 @@ pipeline = Pipeline(network=network, environment=environment, plot_type='line',
 
 # Train the network.
 # print("w", network.connection.w)
-for i in range(20):
+for i in range(50):
     print(f"step {i}")
-    pipeline.step()
-
     # print("w", network.connection.w)
-    # plt.imshow(network.connection.w.view(source_shape * source_shape, target_shape * target_shape))
+    pipeline.step()
+    w = network.connection.w
+    w = w.view(*target_shape, *kernel_shape)
+    w = w.permute(0, 2, 1, 3).contiguous()
+    w = w.view(target_shape[0] * kernel_shape[0], target_shape[1] * kernel_shape[1])
+    plt.imshow(w)
     # plt.imshow(network.layers['Y'].theta.view(target_shape, target_shape))
-    plt.imshow(network.layers['Y'].summed.view(target_shape, target_shape))
+    #plt.imshow(network.layers['Y'].summed.view(target_shape, target_shape))
     # print("theta", network.layers['Y'].theta)
-    network.reset_()
+    #network.reset_()
 print("w", network.connection.w)
 input('Press ENTER to exit')
