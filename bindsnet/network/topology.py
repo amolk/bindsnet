@@ -624,9 +624,12 @@ class RFConnection(AbstractConnection):
         """
         Normalize weights so each target neuron has sum of connection weights equal to ``self.norm``.
         """
+        self.w = self.w.t()
         if self.norm is not None:
-            sums = self.w.sum(dim=0)
-            self.w /= sums
+            w_abs_sum = self.w.abs().sum(0).unsqueeze(0)
+            w_abs_sum[w_abs_sum == 0] = 1.0
+            self.w *= self.norm / w_abs_sum
+        self.w = self.w.t()
 
     def reset_(self) -> None:
         # language=rst
