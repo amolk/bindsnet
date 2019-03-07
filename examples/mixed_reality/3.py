@@ -87,7 +87,8 @@ class MixedRealityNetwork(Network):
         self.connection = RFConnection(source=self.layers['X'], source_shape=self.source_shape,
                                        target=self.layers['Y'], target_shape=self.target_shape,
                                        update_rule=PostPre, nu=nu, wmin=wmin, wmax=wmax, norm=norm,
-                                       kernel_shape=self.kernel_shape)
+                                       kernel_shape=self.kernel_shape,
+                                       weight_decay = 0.01)
         self.add_connection(self.connection,
                             source='X', target='Y')
 
